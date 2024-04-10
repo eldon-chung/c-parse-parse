@@ -303,15 +303,17 @@ Parser<Json> json_parser() {
         json_array_into_json_type;
 
     Parser<std::pair<Json, Json>> object_pair =
-        skip_ws > surrounding(colon, string_parser(), ref_parser(&json_value)) <
-        skip_ws;
+        between(skip_ws, skip_ws,
+                surrounding(colon, string_parser(), ref_parser(&json_value)));
 
     Parser<Json> json_object =
         between(char_parser('{') < skip_ws, skip_ws > char_parser('}'),
                 seperated_by(object_pair, comma) <<= pair_list_to_object);
 
-    json_value = any_of_parser(json_object, string_parser(), number_parser(),
-                               literal_parser(), json_array);
+    json_value =
+        between(skip_ws, skip_ws,
+                any_of_parser(json_object, string_parser(), number_parser(),
+                              literal_parser(), json_array));
     return json_value;
 }
 

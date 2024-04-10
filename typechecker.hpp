@@ -243,11 +243,11 @@ inline Parser<std::shared_ptr<Term>> type_parser() {
     static auto r_paren = between(skip_ws, skip_ws, char_parser(')'));
 
     static Parser<std::shared_ptr<TermType>> INTEGER =
-        skip_ws > str_parser("int") <<= int_base_type;
+        between(skip_ws, skip_ws, str_parser("int")) <<= int_base_type;
     static Parser<std::shared_ptr<TermType>> CHAR =
-        skip_ws > str_parser("char") <<= char_base_type;
+        between(skip_ws, skip_ws, str_parser("char")) <<= char_base_type;
     static Parser<std::shared_ptr<TermType>> BOOLEAN =
-        skip_ws > str_parser("bool") <<= bool_base_type;
+        between(skip_ws, skip_ws, str_parser("bool")) <<= bool_base_type;
 
     static Parser<std::shared_ptr<TermType>> base_types =
         any_of_parser(INTEGER, CHAR, BOOLEAN);
@@ -256,7 +256,7 @@ inline Parser<std::shared_ptr<Term>> type_parser() {
         std::pair<std::shared_ptr<TermType>, std::shared_ptr<TermType>>;
 
     static Parser<std::shared_ptr<TermType>> base_arrow_type =
-        base_types *base_types <<=
+        (base_types * base_types) <<=
         [](base_arrow_type_t const &pair) -> std::shared_ptr<TermType> {
         return std::make_shared<TermType>(pair);
     };

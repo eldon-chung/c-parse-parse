@@ -60,19 +60,19 @@ template <typename T> struct ParseResult {
         : maybe_result(std::move(t)), remaining(remaining) {}
 
     operator bool() const { return maybe_result.has_value(); }
-    operator std::string_view() const { return remaining; }
+    // operator std::string_view() const { return remaining; }
     T const &get_result() const { return maybe_result.value(); }
     bool has_result() const { return maybe_result.has_value(); }
 
-    template <typename F>
-    ParseResult<std::result_of<F(T)>> operator()(F map) const {
-        if (maybe_result) {
-            return ParseResult<std::result_of<F(T)>>(map(*maybe_result),
-                                                     remaining);
-        } else {
-            return ParseResult<std::result_of<F(T)>>(remaining);
-        }
-    }
+    // template <typename F>
+    // ParseResult<std::result_of<F(T)>> operator()(F map) const {
+    //     if (maybe_result) {
+    //         return ParseResult<std::result_of<F(T)>>(map(*maybe_result),
+    //                                                  remaining);
+    //     } else {
+    //         return ParseResult<std::result_of<F(T)>>(remaining);
+    //     }
+    // }
 };
 
 template <> struct ParseResult<NullParseType> {
@@ -122,19 +122,20 @@ template <typename... Parsers> auto any_of_parser(Parsers... parsers) {
 }
 
 template <typename T, typename F>
-Parser<std::result_of_t<F(T)>> operator<<=(Parser<T> const &parse_result,
+Parser<std::result_of_t<F(T)>> operator<<=(Parser<T> const &parser,
                                            F post_application) {
-    return map(post_application, parse_result);
+    return map(post_application, parser);
 }
 
-template <typename T> Parser<T> eof_parser() {
-    return Parser<T>([](std::string_view sv) -> ParseResult<T> {
-        if (sv.empty()) {
-            return ParseResult<T>(T(), sv);
-        } else {
-            return ParseResult<T>(sv);
-        }
-    });
+inline Parser<NullParseType> eof_parser() {
+    return Parser<NullParseType>(
+        [](std::string_view sv) -> ParseResult<NullParseType> {
+            if (sv.empty()) {
+                return ParseResult<NullParseType>(sv);
+            } else {
+                return ParseResult<NullParseType>(sv, false);
+            }
+        });
 }
 
 template <typename T> Parser<T> pure_parser(T t) {
@@ -570,20 +571,6 @@ auto maybe(Parser<T> const &parser, F const &success_value,
             }
         });
 }
-
-// shorthand for partially binding in-fix operators
-template <typename F, typename T>
-auto operator>>(Parser<T> const &l_operand, F func) {
-    return [l_operand, func]<typename U>(Parser<U> const &r_operand) {
-        return map2(l_operand, func, r_operand);
-    };
-}
-
-// shorthand for applying in-fix operators
-template <typename F, typename U>
-auto operator<<(F func, Parser<U> const &r_operand) {
-    return func(r_operand);
-};
 
 template <typename T, typename... Parsers>
 ParseResult<T> any_of_eval(std::string_view sv, Parser<T> const &parser,
